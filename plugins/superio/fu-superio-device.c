@@ -37,9 +37,9 @@ fu_superio_device_regval (FuSuperioDevice *self, guint8 addr,
 			  guint8 *data, GError **error)
 {
 	FuSuperioDevicePrivate *priv = GET_PRIVATE (self);
-	if (!fu_udev_device_pwrite (FU_UDEV_DEVICE (self), priv->port, addr, error))
+	if (!fu_udev_device_pwrite (FU_UDEV_DEVICE (self), priv->port, addr, 0x1, error))
 		return FALSE;
-	if (!fu_udev_device_pread (FU_UDEV_DEVICE (self), priv->port + 1, data, error))
+	if (!fu_udev_device_pread (FU_UDEV_DEVICE (self), priv->port + 1, data, 0x1, error))
 		return FALSE;
 	return TRUE;
 }
@@ -63,9 +63,9 @@ fu_superio_device_regwrite (FuSuperioDevice *self, guint8 addr,
 			    guint8 data, GError **error)
 {
 	FuSuperioDevicePrivate *priv = GET_PRIVATE (self);
-	if (!fu_udev_device_pwrite (FU_UDEV_DEVICE (self), priv->port, addr, error))
+	if (!fu_udev_device_pwrite (FU_UDEV_DEVICE (self), priv->port, addr, 0x1, error))
 		return FALSE;
-	if (!fu_udev_device_pwrite (FU_UDEV_DEVICE (self), priv->port + 1, data, error))
+	if (!fu_udev_device_pwrite (FU_UDEV_DEVICE (self), priv->port + 1, data, 0x1, error))
 		return FALSE;
 	return TRUE;
 }
@@ -150,7 +150,9 @@ fu_superio_device_wait_for (FuSuperioDevice *self, guint8 mask, gboolean set, GE
 	g_autoptr(GTimer) timer = g_timer_new ();
 	do {
 		guint8 status = 0x00;
-		if (!fu_udev_device_pread (FU_UDEV_DEVICE (self), priv->pm1_iobad1, &status, error))
+		if (!fu_udev_device_pread (FU_UDEV_DEVICE (self),
+					   priv->pm1_iobad1,
+					   &status, 0x1, error))
 			return FALSE;
 		if (g_timer_elapsed (timer, NULL) > FU_PLUGIN_SUPERIO_TIMEOUT)
 			break;
@@ -172,7 +174,8 @@ fu_superio_device_ec_read (FuSuperioDevice *self, guint8 *data, GError **error)
 	FuSuperioDevicePrivate *priv = GET_PRIVATE (self);
 	if (!fu_superio_device_wait_for (self, SIO_STATUS_EC_OBF, TRUE, error))
 		return FALSE;
-	return fu_udev_device_pread (FU_UDEV_DEVICE (self), priv->pm1_iobad0, data, error);
+	return fu_udev_device_pread (FU_UDEV_DEVICE (self), priv->pm1_iobad0,
+				     data, 0x1, error);
 }
 
 gboolean
@@ -181,7 +184,8 @@ fu_superio_device_ec_write0 (FuSuperioDevice *self, guint8 data, GError **error)
 	FuSuperioDevicePrivate *priv = GET_PRIVATE (self);
 	if (!fu_superio_device_wait_for (self, SIO_STATUS_EC_IBF, FALSE, error))
 		return FALSE;
-	return fu_udev_device_pwrite (FU_UDEV_DEVICE (self), priv->pm1_iobad0, data, error);
+	return fu_udev_device_pwrite (FU_UDEV_DEVICE (self), priv->pm1_iobad0,
+				      data, 0x1, error);
 }
 
 gboolean
@@ -190,7 +194,8 @@ fu_superio_device_ec_write1 (FuSuperioDevice *self, guint8 data, GError **error)
 	FuSuperioDevicePrivate *priv = GET_PRIVATE (self);
 	if (!fu_superio_device_wait_for (self, SIO_STATUS_EC_IBF, FALSE, error))
 		return FALSE;
-	return fu_udev_device_pwrite (FU_UDEV_DEVICE (self), priv->pm1_iobad1, data, error);
+	return fu_udev_device_pwrite (FU_UDEV_DEVICE (self), priv->pm1_iobad1,
+				      data, 0x1, error);
 }
 
 static gboolean
@@ -201,11 +206,15 @@ fu_superio_device_ec_flush (FuSuperioDevice *self, GError **error)
 	g_autoptr(GTimer) timer = g_timer_new ();
 	do {
 		guint8 unused = 0;
-		if (!fu_udev_device_pread (FU_UDEV_DEVICE (self), priv->pm1_iobad1, &status, error))
+		if (!fu_udev_device_pread (FU_UDEV_DEVICE (self),
+					   priv->pm1_iobad1,
+					   &status, 0x1, error))
 			return FALSE;
 		if ((status & SIO_STATUS_EC_OBF) == 0)
 			break;
-		if (!fu_udev_device_pread (FU_UDEV_DEVICE (self), priv->pm1_iobad0, &unused, error))
+		if (!fu_udev_device_pread (FU_UDEV_DEVICE (self),
+					   priv->pm1_iobad0,
+					   &unused, 0x1, error))
 			return FALSE;
 		if (g_timer_elapsed (timer, NULL) > FU_PLUGIN_SUPERIO_TIMEOUT) {
 			g_set_error_literal (error,

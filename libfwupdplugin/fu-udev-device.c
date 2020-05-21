@@ -939,6 +939,7 @@ fu_udev_device_ioctl (FuUdevDevice *self,
  * @self: A #FuUdevDevice
  * @port: offset address
  * @data: value
+ * @bufsz: size of @data
  * @error: A #GError, or %NULL
  *
  * Write to a file descriptor at a given offset.
@@ -948,7 +949,8 @@ fu_udev_device_ioctl (FuUdevDevice *self,
  * Since: 1.3.3
  **/
 gboolean
-fu_udev_device_pwrite (FuUdevDevice *self, goffset port, guint8 data, GError **error)
+fu_udev_device_pwrite (FuUdevDevice *self, goffset port,
+		       guint8 data, gsize bufsz, GError **error)
 {
 	FuUdevDevicePrivate *priv = GET_PRIVATE (self);
 
@@ -957,7 +959,7 @@ fu_udev_device_pwrite (FuUdevDevice *self, goffset port, guint8 data, GError **e
 	g_return_val_if_fail (priv->fd > 0, FALSE);
 
 #ifdef HAVE_PWRITE
-	if (pwrite (priv->fd, &data, 1, port) != 1) {
+	if (pwrite (priv->fd, &data, bufsz, port) != (gssize) bufsz) {
 		g_set_error (error,
 			     G_IO_ERROR,
 			     G_IO_ERROR_FAILED,
@@ -1058,6 +1060,7 @@ fu_udev_device_get_sysfs_attr (FuUdevDevice *self, const gchar *attr,
  * @self: A #FuUdevDevice
  * @port: offset address
  * @data: (out): value
+ * @bufsz: size of @data
  * @error: A #GError, or %NULL
  *
  * Read from a file descriptor at a given offset.
@@ -1067,7 +1070,8 @@ fu_udev_device_get_sysfs_attr (FuUdevDevice *self, const gchar *attr,
  * Since: 1.3.3
  **/
 gboolean
-fu_udev_device_pread (FuUdevDevice *self, goffset port, guint8 *data, GError **error)
+fu_udev_device_pread (FuUdevDevice *self, goffset port,
+		      guint8 *data, gsize bufsz, GError **error)
 {
 	FuUdevDevicePrivate *priv = GET_PRIVATE (self);
 
@@ -1077,11 +1081,11 @@ fu_udev_device_pread (FuUdevDevice *self, goffset port, guint8 *data, GError **e
 	g_return_val_if_fail (priv->fd > 0, FALSE);
 
 #ifdef HAVE_PWRITE
-	if (pread (priv->fd, data, 1, port) != 1) {
+	if (pread (priv->fd, data, bufsz, port) != (gssize) bufsz) {
 		g_set_error (error,
 			     G_IO_ERROR,
 			     G_IO_ERROR_FAILED,
-			     "failed to read from port %04x: %s",
+			     "failed to read from port 0x%04x: %s",
 			     (guint) port,
 			     strerror (errno));
 		return FALSE;

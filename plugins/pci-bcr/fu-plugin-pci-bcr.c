@@ -132,7 +132,7 @@ fu_plugin_udev_device_added (FuPlugin *plugin, FuUdevDevice *device, GError **er
 		return FALSE;
 
 	/* grab BIOS Control Register */
-	if (!fu_udev_device_pread (device, BCR, &priv->bcr, error)) {
+	if (!fu_udev_device_pread (device, BCR, &priv->bcr, 0x1, error)) {
 		g_prefix_error (error, "could not read BCR");
 		return FALSE;
 	}

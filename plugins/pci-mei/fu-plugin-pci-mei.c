@@ -11,7 +11,7 @@
 
 struct FuPluginData {
 	gboolean		 has_device;
-	guint8			 mei_cfg;
+	guint32			 mei_cfg;
 };
 
 #define PCI_CFG_HFS_1		0x40
@@ -28,6 +28,7 @@ gboolean
 fu_plugin_udev_device_added (FuPlugin *plugin, FuUdevDevice *device, GError **error)
 {
 	FuPluginData *priv = fu_plugin_get_data (plugin);
+	guint8 buf[4] = { 0x0 };
 	g_autoptr(FuDeviceLocker) locker = NULL;
 
 	/* interesting device? */
@@ -43,10 +44,11 @@ fu_plugin_udev_device_added (FuPlugin *plugin, FuUdevDevice *device, GError **er
 		return FALSE;
 
 	/* grab MEI config Register */
-	if (!fu_udev_device_pread (device, PCI_CFG_HFS_1, &priv->mei_cfg, error)) {
-		g_prefix_error (error, "could not read MEI");
+	if (!fu_udev_device_pread (device, PCI_CFG_HFS_1, buf, sizeof(buf), error)) {
+		g_prefix_error (error, "could not read MEI: ");
 		return FALSE;
 	}
+	priv->mei_cfg = fu_common_read_uint32 (buf, G_LITTLE_ENDIAN);
 	priv->has_device = TRUE;
 	return TRUE;
 }
